@@ -1,0 +1,115 @@
+---
+title: "Week 3 Assignment: R Markdown and Plotly"
+author: "Dushan Yovetich"
+date: "April 02, 2017"
+runtime: shiny
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, warning=FALSE, message=FALSE}
+# Code block to load and transform dataset
+library(dplyr)
+library(shiny)
+library(plotly)
+
+myData <- read.csv(unz("STC_2015_00A1.zip","STC_2015_00A1.csv"), 
+                   header = TRUE, skip = 1)
+
+myData <- myData[,-c(1:2,4:6)]
+colnames(myData) <- c("state","tax","amount")
+myData$code <- state.abb[match(myData$state,state.name)]
+myData <- myData[complete.cases(myData),]
+```
+
+## U.S. State Tax Collections
+
+Click a state on the map to see the top taxes collected by the state.
+
+```{r}
+ui <- fluidPage(
+  fixedRow(
+      column(6,plotlyOutput("plot1")),
+      column(6, plotlyOutput("plot2"))
+  )
+)
+
+server <- function(input, output){
+
+# Code for Choropleth Mapping
+  output$plot1 <- renderPlotly({
+  
+    borders <- list(color = toRGB("white"))
+  
+    map_options <- list(
+      scope = 'usa',
+      projection = list(type = 'albers usa'),
+      showlakes = TRUE,
+      lakecolor = toRGB("white")
+    )
+  
+    myData %>% filter(tax == "Total Taxes") %>% 
+    plot_ly(
+      z = ~amount,locations= ~code, 
+      type = 'choropleth', 
+      locationmode = 'USA-states',
+      color = ~amount, 
+      colors = 'Blues',
+      source = 'select') %>%
+    colorbar(title = '000s USD', thickness = 15) %>% 
+    layout(geo = map_options)
+  })
+
+# Code for bar chart
+  m <- list(
+    l = 30,
+    r = 120,
+    b = 150,
+    t = 50,
+    pad = 0
+  )
+
+  f <- list(
+    family = "Arial, sans-serif",
+    size = 10,
+    color = "black"
+  )
+
+  a <- list(
+    title = "",
+    showticklabels = TRUE,
+    tickfont = f
+  )
+
+  output$plot2 <- renderPlotly({
+  
+    y <- event_data("plotly_click", source = "select")
+    if (is.null(y) == TRUE){
+      return(NULL)
+    } else {
+      p <- y[[2]]+1
+    
+      myData %>% filter(code == state.abb[p] & tax != 'Total Taxes') %>%
+      top_n(5,amount) %>%
+      plot_ly(
+        x = ~reorder(tax, desc(amount)),
+        y = ~amount,
+        type = "bar") %>%
+      layout(
+        title = paste("Top 5 Taxes Collected for ",state.abb[p],"<br> USD thousands"),
+        yaxis = a,
+        xaxis = a,
+        margin = m)
+    }
+  })
+}
+
+shinyApp(ui, server)
+```
+
+## Source
+
+- U.S. Census Bureau, 2015 Annual Survey of State Government Tax Collections

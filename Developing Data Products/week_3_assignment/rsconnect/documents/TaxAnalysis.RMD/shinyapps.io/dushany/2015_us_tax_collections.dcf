@@ -1,0 +1,10 @@
+name: 2015_us_tax_collections
+title: 2015 US Tax Collections
+account: dushany
+server: shinyapps.io
+appId: 168905
+bundleId: 774041
+url: https://dushany.shinyapps.io/2015_us_tax_collections/
+when: 1491161845.2558
+asMultiple: FALSE
+asStatic: FALSE
