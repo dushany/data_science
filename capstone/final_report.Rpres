@@ -1,0 +1,75 @@
+John Hopkins Coursera Data Science Capstone
+========================================================
+author: Dushan Yovetich
+date: 12 Feb 2018
+autosize: true
+font-family: 'Times New Roman'
+transition: concave
+
+Background
+========================================================
+
+- The goal was to develop an application able to predict the next word following 
+  a phrase provided by a user. The concepts of Next Word prediction
+  found in the field of Natural Language Processing were instrumental in this 
+  development.
+- Natural Language Processing (NLP) is a Multidisciplinary field concerned with 
+  the interaction between computers and natural language. For more background 
+  information on NLP, refer to: 
+  <http://en.wikipedia.org/wiki/Natural_language_programming>
+- Next word prediction is common in text applications. One of the most widely 
+  recognized applications being text messaging. With the continued 
+  penetration of technology in modern society, there is little doubt the market
+  for such applications will remain for the foreseeable future.
+  
+
+NLP Next Word
+========================================================
+
+- Prototype of text application rendered in R Shiny. Operates
+  similar to text messaging.
+- Returns set of 3 words for next word in a phrase entered by the user.
+- Can click on next word desired and update typed text.
+
+![alt image](screenshot.tiff)
+
+Language Model
+========================================================
+
+- Next word predictions developed using N-gram model. For more information, see:
+  <https://en.wikipedia.org/wiki/N-gram>. Tri-grams were used. However, the 
+  model is scalable to other n-gram sizes.
+- Text corpus used was a collection of publicly available data provided by
+  corporate partner Swiftkey.
+- Model utilized Modified Kneser-Ney Interpolation to assign probabilities
+  of next word. For more information on this technique, see:     <http://u.cs.biu.ac.il/~yogo/courses/mt2013/papers/chen-goodman-99.pdf>
+ 
+
+$$
+  \begin{equation}
+  \tiny
+  P_{mkn}(W_{i}|W^{i-1}_{i-n+1}) = 
+  \frac{max\left\{N_{1+}(\cdot w^i_{i-n+1})-D(c(w^i_{i-n+1})),0\right\}}
+       {N_{1+}(\cdot w^{i-1}_{i-n+1} \cdot)}
+  \end{equation}
+$$
+$$
+  \begin{equation}
+  \tiny
+  + \gamma(w^{i-1}_{i-n+1})
+  P_{mkn}(W_{i}|W^{i-1}_{i-n+2})
+  \end{equation}
+$$
+
+Further Development and Features
+========================================================
+
+In moving forward with this project, some of the next steps would be:
+- Expansion and further processing of Corpus
+- Evaluation and potential porting of portions of application in lower-level
+  language (e.g. C++) to speed text processing
+- Capture and visualize words selection history. This requires exploring and
+  implementing persistent data storage.
+- Feedback mechanism: User dictionary and/or further training of model
+
+See current application here: 

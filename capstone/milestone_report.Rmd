@@ -1,0 +1,133 @@
+---
+title: "John Hopkins Data Science Capstone: Milestone Report"
+author: "Dushan Yovetich"
+date: "01/04/2018"
+output: html_document
+---
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+# Libraries
+library(tidyverse)
+library(tidytext)
+library(stringi)
+library(ggplot2)
+library(wordcloud)
+library(igraph)
+library(ggraph)
+```
+
+##Introduction
+***
+The focus of the John Hopkins Data Science Capstone is to apply data science concepts to the area of natural language processing. Natural Language Processing (NLP), as defined by wikipedia, is:
+
+>"a field of computer science, artificial intelligence and computational linguistics concerned with the interactions between computers and human languages, and, in particular, concerned with programming computers to process large natural language corpora." 
+
+We are particularly interested in the subset regarding next word prediction. Our objective is to gain an understanding of NLP concepts, and apply them towards developing a predictive text product. The process includes:
+
+1. Loading and analyzing a large corpora of text data.
+2. Processing text data.
+3. Developing the necessary model for prediction.
+4. Building the predictive text product.
+
+This report is a summary of the outcome of steps 1 and 2 in our process, and progress toward step 3 and 4. 
+
+##Capstone Data (Text Corpora) 
+***
+The corpora was supplied by the Corporate partner, Swiftkey. It is a collection of text taken from publicly available sources (Blogs, Newfeeds, and Twitter) via a web crawler. The corpora is provided as a set of three files, and is available in English, German, Finnish and Russian. I opted to use the English corpora.
+
+```{r cache=TRUE}
+source("text_load.R", local = TRUE)
+file_path <- file.path(getwd(),"Coursera-SwiftKey.zip")
+
+news <- read_text_file(file_path,"final/en_US/en_US.news.txt")
+blog <- read_text_file(file_path,"final/en_US/en_US.blogs.txt")
+twitter <- read_text_file(file_path,"final/en_US/en_US.twitter.txt")
+```
+
+```{r echo=FALSE}
+# Get file attributes
+df_list <- list(blog = blog,
+                news = news,
+                twitter = twitter)
+s <- sapply(df_list,function(x) list(size = format(object.size(x),unit = "Mb"),
+                                 rows=format(nrow(x),big.mark = ",")))
+as.data.frame(s)
+```
+
+The corpora is significant in size.  As this may impact performance when processing text and building the model,file size will need to be considered in this project. A representative sample of text from the loaded corpora was used for the rest of this analysis. The sample is a random selection of 25% of each text corpus.
+
+```{r echo=FALSE}
+# Get random sample
+set.seed(120)
+blog <- blog %>% sample_file(0.25)
+news <- news %>% sample_file(0.25)
+twitter <- twitter %>% sample_file(0.25)
+```
+
+##Text Pre-processing
+***
+The approach deemed most suitable was minimal processing to preserve as much of the data’s original state as possible. Processing included: 
+
+* Elimination of Non-ASCII & Numeric characters
+* Retention of Printable Characters (i.e. Alphanumeric, punctuation, and spaces)
+* Elimination of profane words - so corpora is suitable for a general audience
+
+Additionally, all capitalization has been removed to standardize text. This is the approach that will be taken once our model is ready. An initial pass is performed on the corpora.
+
+```{r warning = FALSE, message = FALSE, cache=TRUE}
+source("text_process.R",local = TRUE)
+tidy_news <- process_text(news)
+tidy_blog <- process_text(blog)
+tidy_twitter <- process_text(twitter)
+```
+
+##Initial Analysis
+***
+I analyzed the corpora to determine what text is provided by each source, and identify corpus(es) most in line with the speech to be modeled. Further, to identify the corpus(es) with most complete and legible text as this would minimize further processing needed.  
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+source("text_graphs.R",local = TRUE)
+tidy_news <- tidy_news %>% unnest_tokens(word, text, token = "words")
+tidy_blog <- tidy_blog %>% unnest_tokens(word, text, token = "words")
+tidy_twitter <- tidy_twitter %>% unnest_tokens(word, text, token = "words")
+```
+
+###News Corpus
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.width = 4, fig.height = 4, fig.show='hold'}
+bar_graph(tidy_news)
+word_cloud(tidy_news)
+```
+
+###Blog Corpus
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.width = 4, fig.height = 4, fig.show='hold'}
+bar_graph(tidy_blog)
+word_cloud(tidy_blog)
+```
+
+###Twitter Corpus
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.width = 4, fig.height = 4, fig.show='hold'}
+bar_graph(tidy_twitter)
+word_cloud(tidy_twitter)
+```
+
+The corpora appeared to have similarity. "Time" and "Day" were top-ten terms in each corpus. The Blog and Twitter corpora included more conversational terms whereas the News corpus more generic or formal terms. There were more abbreviations and informality in the Twitter corpus - mostly likely due to Twitter's emphasis on social networking and its character limitations. As the Twitter corpus posed more challenges to processing and next-word prediction, I eliminated it as a possible source.
+
+##Model Approach
+***
+After reviewing many methods, and consulting several sources (see references below), our approach to next-word prediction is to develop an N-gram model with a focus on trigrams as they appear to provide a good balance versus other larger or smaller n-grams. We will use Modified Kneser-Ney Interpolation for smoothing the probabilities. This appears to be the most effective method; however, implementation will be challenging as there are several layers to computation of the n-gram probabilities with this technique. 
+
+
+####Other Development Notes
+Researched methods for speeding loading and processing of data.
+
+* tidyR and tidyText packages allow for streamlined loading and processing, as well code readability.
+* conversion of corpora to data tables can significantly improve manipulation of data. However, the syntax can be difficult to work with at times. 
+
+##References
+***
+* Feinerer, Ingo, Kurt Hornik, & David Meyer. "Text Mining Infrastructure in R." Journal of Statistical Software [Online], 25.5 (2008): 1 - 54. Web. 17 May. 2017
+* Körner, Martin Christian, and Steffen Staab. “Implementation of Modified Kneser-Ney Smoothing on Top of Generalized Language Models for Next Word Prediction.”
+* Matloff, Norman. The art of R programming: a tour of statistical software design. San Francisco: No Starch Press, 2013. Print.
+* Silge, Julia, and David Robinson. Text mining with R: a tidy approach. OReilly, 2017.
+* Wickham, Hadley, and Garrett Grolemund. R for data science: Import, tidy, transform, visualize, and model data. OReilly, 2017.
+* Jurafksy, Dan, and Christopher Manning. “Natural Language Processing.” Coursera.
