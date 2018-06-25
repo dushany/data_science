@@ -1,0 +1,83 @@
+---
+title: "The Impact of Severe Weather Events Across the United States"
+output: 
+  html_document:
+    keep_md: true
+---
+
+#Synopsis
+This analysis explores major storms and weather events in the United States between the period 1950 and 2011 in order to identify the types of severe weather events that may have the highest impact, and for which events priority should be given with regard to allocating governmental resources for recovery. The specific questions this analysis aims to answer are: (1) Across the United States, which types of events are most harmful with respect to population health? (2) Across the United States, which types of events have the greatest economic consequences?
+
+#Data Processing
+The data used in the analysis is compiled by the U.S. National OCeanic and 
+Atmospheric Administration's (NOAA). The Storm Data is mainly gathered by the
+National Weather Service (NWS), but may include other sources. For further
+detail regarding the source data, refer to the NWS' [Directive 10-1605][1]
+
+##R Packages
+The following additional R packages were loaded and used in preparing the data
+```{r, warning = FALSE, message = FALSE}
+library(dplyr)
+library(readr)
+library(lubridate)
+```
+
+##Loading and Reviewing Data
+We download the source file containing the raw data and read it into our dataset.
+```{r, cache= TRUE}
+# download weather data from source
+fURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+download.file(fURL,"NOAA.data.bz2")
+
+# load weather data
+raw.data <- read_csv("NOAA.data.bz2")
+```
+
+We view the dataset dimensions to determine the number of records and variables available to us.
+```{r}
+dim(raw.data)
+```
+
+We review the dataset structure to determine how records are composed. Below are the first ten variables. 
+```{r}
+str(raw.data[,1:10])
+```
+We determine the variables that potentially provide the most value in our analysis would be: **EVTYPE**, **FATALITIES**, **INJURIES**, **PROPDMG**, **CROPDMG**.
+
+
+We review what states have storm data available as the focus is on the United States, as a whole. 
+```{r}
+unique(raw.data$STATE)
+```
+There are records for `r length(unique(raw.data$STATE))` states included. That is more than the 50 states; however, these additional records appear to be related to U.S. territories and offshore coastal areas. Therefore, we will potentially include them in our analysis.
+
+We review the number of event types that we have in the dataset
+```{r}
+length(unique(raw.data$EVTYPE))
+```
+Per the NWS' Directive 10-1605, there are 48 event types defined. Therefore, we will need to map some of the eventypes to those defined. Additionally, based on supplemental information we obatined from the NOAA (see [Storm Database Details][2]), all 48 event types have only been recorded as of 1996, so we further filter our dataset based on date.
+
+##Data Transformation
+We extract those variables identified for our analysis from the raw data into a new dataset. We also transform the **BGN_DATE** into a proper date format. Then subset the data for records for the period 1996 to the present as these are most pertinent to our analysis.
+```{r}
+# create initial dataset
+mod.data <- raw.data %>% 
+            select(BGN_DATE, STATE, EVTYPE, FATALITIES, INJURIES, 
+                   PROPDMG, PROPDMGEXP, CROPDMG,CROPDMGEXP) %>%
+            mutate(BGN_DATE = parse_date_time(BGN_DATE,"%m%d%y %H:%M:%S"))
+
+# subset dataset to obtain data for 1996 to present
+mod.data <- filter(mod.data,BGN_DATE >= "1996-01-01")
+dim(mod.data)
+```
+
+
+
+
+#Results
+
+
+
+
+[1]:https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf
+[2]:http://www.ncdc.noaa.gov/stormevents/details.jsp?type=eventtype
