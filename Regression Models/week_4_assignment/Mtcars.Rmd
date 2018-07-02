@@ -1,0 +1,110 @@
+---
+title: "Motor Trend Cars Mileage Analysis"
+author: "Dushan Yovetich"
+date: "December 24, 2016"
+output: pdf_document
+---
+
+Analysis prepared for Motor Trend, an automobile industry publication. The purpose of our analysis is to explore the relationship between fuel consumption and automobile design for a set of 1973-1974 models. In particular, we are looking to:
+
+- Determine whether an automatic or manual transmission is better for MPG
+- Quantify the MPG difference between automatic and manual transmissions
+
+# Summary
+There is a difference in fuel consumption between an automatic and manual transmission. Manual transmissions tended to be more fuel efficient overall, and got 2.94 miles per gallon more on average than an automatic transmission.
+
+### Motor Trend Data
+A series of road tests were performed by Motor Trend in which gas mileage and other attributes were recorded for automobile models. The dataset used is an extract of road tests published in the March, April, June and July issues of the 1974 edition of the magazine.
+```{r}
+# load data
+data(mtcars)
+```
+Our dataset includes 11 variables for a total of 32 models of automobiles. The following is a detailed description of the variables:
+
+Variable    |   Description                      |   Type
+------------|------------------------------------|---------------
+mpg         |Fuel Consumption (Miles per gallon) | Continuous
+cyl         |Number of cylinders                 | Discrete
+disp        |Cyl displacement (i.e. Engine Size)(cubic inch)| Continuous
+hp          |Horsepower                          | Continuous
+drat        |Final Drive Ratio                   | Continuous
+wt          |Weight (thousand pounds)            | Continuous
+qsec        |Quarter mile time (Seconds)         | Continuous
+vs          |Engine Shape                        | Discrete (V = 0, Straight = 1)
+am          |Transmission Type                   | Discrete (Auto = 0, Manual = 1)
+gear        |Number of Transmission Speeds       | Discrete
+carb        |Number of Carboretur Barrels        | Discrete
+
+### R Packages
+The following are additional R packages used in preparation of our analysis.
+```{r, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(GGally)
+library(gridExtra)
+```
+
+```{r, include = FALSE}
+# set the number format for scientific notation
+options(scipen = 999)
+```
+
+# Fuel Consumption By Transmission Type
+We look at the population for each transmission. **Fig. 2a** is a count of automobile models by transmission. There is a higher incidence of models with automatic versus manual transmissions. We next look at the relationship between transmissions and fuel consumption. **Fig. 2b** is a plot of mpg by transmission. Our figure shows manual transmissions on average have higher miles per gallon. However, further testing is needed to confirm there is a difference.
+```{r,fig.width=10, fig.height=5}
+plot1 <- qplot(x = factor(am,labels = c("Auto","Manual")),data = mtcars, geom="bar", 
+               main = "Fig. 2a", xlab = "Trans Type")
+
+plot2 <- qplot(x = factor(am,labels = c("Auto","Manual")), y = mpg, data = mtcars, 
+               geom = "boxplot", main = "Fig. 2b", xlab = "Trans Type")
+
+grid.arrange(plot1,plot2,nrow = 1, ncol = 2)
+```
+
+### Test of Two Transmission Types
+To determine whether the difference in fuel consumption for transmission type is significant, we subset our dataset into two sets based on transmission and perform a Student's t-Test of:
+
+- H0 = 0    no difference between transmission types
+- Ha <> 0   a difference exists between transmission types
+
+We assume a 95% confidence level (|p| > 0.05), and the variances for the two sets are not equal.
+```{r}
+mt <- with(mtcars,t.test(mpg[am==0],mpg[am==1]))
+print(mt)
+```
+Our p-value, `r mt$p.value`, is significant with a 95% confidence level. We therefore fail to reject the alternate hypothesis (Ha). In conclusion, a difference exists between automatic and manual transmissions with regard to fuel consumption. 
+
+# Quantifying Fuel Consumption Differences Between Transmission Types
+Our analysis next attempts to quantify differences in fuel consumption by transmission. We begin with a simple linear regression model using fuel consumption, `mpg`, as the dependent variable and transmission, `am`, as our independent variable. A 95% confidence level (|p| < 0.05) is assumed. 
+```{r}
+fit <- lm(mpg ~ factor(am), mtcars)
+summary(fit)$coeff
+```
+The independent variable, `am`, is significant with a p-value of `r summary(fit)$coef[8]`. However, the percentage of total variability explained by our model is low at `r summary(fit)$r.squared`. Confounding variables may need to be considered.
+
+### Multivariate Linear Regression
+We attempt a multivariate model with all variables in our dataset. Again, assuming a 95% confidence level (|p| > 0.05). 
+```{r}
+fit2 <- lm(mpg~., mtcars)
+summary(fit2)$coeff
+```
+The percentage of total variability now explained is `r summary(fit2)$r.squared`, an improvement over the simple model. We observe the variable `wt` is shown to be significant, as well as possibly `qsec` and `hp`. However, `qsec` and `hp` have a correlation of `r cor(mtcars$qsec,mtcars$hp)`. We therefore choose to omit `hp` from our model, since `qsec` was shown to be more significant. The result is a model with `mpg` as the dependent outcome, and the independent predictors `am`, `wt`, and `qsec`. We apply our model, assuming a 95% confidence level (|p| < 0.05). 
+```{r}
+fit3 <- lm(mpg~am+wt+qsec, data = mtcars)
+summary(fit3)$coeff
+```
+The percentage of total variability now explained by the linear relationship is `r summary(fit3)$r.squared`. Further, the p-values of the independent predictors are all significant. We confirm this is indeed the most appropriate model and review of our diagnostic plots show no significant systematic patterns in our residuals, or highly influential or leveraged observations, that would cause us to dismiss our selected model. (See *Appendix, Stepwise Regression* and *Appendix, Model Diagnostics*). In conclusion, there is a **`r summary(fit3)$coeff[2]`** mpg difference between automatic and manual transmissions.
+
+# Appendix
+### Stepwise Regression
+```{r}
+step.fit <- step(lm(mpg~.,data = mtcars), trace = 0)
+summary(step.fit)
+```
+
+### Model Diagnostics
+```{r, fig.width=10, fig.height=10}
+# plot of diagnostics
+par(mfrow=c(2,2))
+plot(fit3)
+```
