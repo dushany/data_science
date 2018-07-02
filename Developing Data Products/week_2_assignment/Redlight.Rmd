@@ -1,0 +1,65 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, eval=FALSE, echo = FALSE}
+# Code for initial data transformation of Chicago Red light Camera Violations data set.
+# taken from City of Chicago Data Portal.
+
+library(lubridate)
+library(dplyr)
+
+# Data Load
+dataURL <- "https://data.cityofchicago.org/api/views/spqx-js37/rows.csv?accessType=DOWNLOAD"
+myData <- read.csv(dataURL, header = TRUE)
+
+# Data Transformation
+myData <- myData[complete.cases(myData),]
+myData$VIOLATION.DATE <- mdy(as.character(myData$VIOLATION.DATE))
+myData <- myData[myData$VIOLATION.DATE > "2017-01-01",]
+sumData <- myData %>% group_by(LONGITUDE,LATITUDE,CAMERA.ID) %>% 
+           summarise(TOTAL = sum(VIOLATIONS))
+
+
+# Data Export
+write.table(sumData,"./Red_Light_Camera_Violations.csv", sep = ",", row.names = FALSE)
+
+```
+
+## City of Chicago Red Light Cameras
+###`r Sys.Date()`
+
+Plot of Red Light Camera locations in the City of Chicago. Click on camera to see 
+the number of violations recorded for 2017, as of March.
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE}
+# Code to create map
+library(leaflet)
+library(htmlTable)
+
+# Load dataset created
+myData <- read.csv("Red_Light_Camera_Violations.csv",header = TRUE)
+
+# Create map icon(s)
+redLight <- makeIcon(
+    iconUrl = "https://github.com/dushany/DDP_Assignment_Wk2/blob/gh-pages/camera.png?raw=true",
+    iconWidth = 31*215/230, iconHeight = 41,
+    iconAnchorX = 31*215/230/2, iconAnchorY = 16
+)
+
+# function to create popup table
+myTable <- function(x){
+    myVal <- c(x[3],x[4])
+    myHeader <- c("Camera","Violations")
+    htmlTable(myVal,header = myHeader)
+}
+
+# Create map
+myMap <- myData %>% leaflet() %>% addTiles()%>% 
+        addMarkers(icon = redLight,popup = apply(myData,1,myTable),
+                   clusterOptions = markerClusterOptions())
+
+myMap
+```
+
+Source: City of Chicago
